@@ -31,3 +31,6 @@ Jika melebihi waktu 10 menit, pesan tidak dapat dibuka lagi meskipun password be
 ## Catatan
 
 - Pastikan waktu pada komputer Anda sudah tepat agar batas waktu 10 menit berfungsi dengan baik.
+
+- https://chathast-fuukfsjmeyh3sxcp9ed7k4.streamlit.app/
+
