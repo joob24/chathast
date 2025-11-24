@@ -7,55 +7,106 @@ import base64
 from html import escape as html_escape
 import streamlit.components.v1 as components
 
-# --- PAGE CONFIG ---
+# PAGE CONFIG
 st.set_page_config(
     page_title="Enkripsi & Deskripsi | Professional App",
     layout="centered"
 )
 
-# --- CUSTOM CSS INCLUDING AUTO-EXPAND TEXTAREA ---
+# MOBILE-FRIENDLY CSS
 st.markdown("""
 <style>
+
+/* GLOBAL MOBILE SETTINGS */
+html, body, .stApp {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+}
+
 .stApp {
     background: #f6f9fc;
-    padding: 20px;
+    padding: 10px;
     font-family: "Segoe UI", sans-serif;
 }
+
+/* CARD */
 .custom-card {
     background: white;
-    padding: 25px 30px;
-    border-radius: 15px;
-    box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+    padding: 18px;
+    border-radius: 14px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
     margin-bottom: 25px;
+    width: 100%;
 }
+
+/* TITLE */
+h1 {
+    font-weight: 700;
+    color: #1a3d7c;
+    text-align: center;
+    font-size: 26px;
+}
+
+/* MOBILE TITLE ADJUST */
+@media (max-width: 480px) {
+    h1 {
+        font-size: 22px;
+    }
+}
+
+/* TEXTAREA */
 textarea {
     overflow: hidden !important;
     min-height: 120px !important;
     resize: none !important;
+    width: 100% !important;
+    font-size: 15px !important;
 }
-textarea:focus, textarea:not(:placeholder-shown) {
-    height: auto !important;
-}
-h1 {
-    font-weight: 700;
-    color: #1a3d7c;
-}
+
+/* BUTTON */
 .stButton button {
     background: #1a73e8;
     color: white;
-    border-radius: 8px;
-    padding: 10px 18px;
+    border-radius: 10px;
+    padding: 12px 20px;
+    width: 100%;
+    font-size: 16px;
     border: none;
 }
 .stButton button:hover {
     background: #135cbc;
 }
+
+/* COPY BLOCK MOBILE OPTIMIZATION */
+.copy-box {
+    background:#eef3ff; 
+    padding:12px; 
+    border-radius:8px;
+}
+.copy-box pre {
+    white-space:pre-wrap; 
+    word-wrap:break-word; 
+    margin:0; 
+    font-size:14px;
+}
+
+/* MOBILE BUTTON INLINE FIX */
+.copy-btn-container {
+    margin-top:8px; 
+    display:flex; 
+    gap:8px;
+    width: 100%;
+}
+.copy-btn-container button {
+    flex: 1;
+    padding:10px;
+    font-size:14px;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
-# --- TITLE ---
-st.markdown("<h1 align='center'>🔐 Aplikasi Enkripsi & Deskripsi</h1>", unsafe_allow_html=True)
-st.write("Masukkan pesan dan password untuk melakukan enkripsi atau deskripsi.")
+
 
 # --- KEY GENERATOR ---
 def generate_key(password: str) -> bytes:
@@ -72,17 +123,17 @@ def generate_key(password: str) -> bytes:
     return base64.urlsafe_b64encode(kdf.derive(password_bytes))
 
 
-def render_copy_block(content: str, uid: str, height: int = 140):
-    """
-    Render a styled pre block with a Copy button using st.components.v1.html.
-    Uses html escaping for the content.
-    """
+
+# --- COPY BLOCK ---
+def render_copy_block(content: str, uid: str, height: int = 160):
+
     safe = html_escape(content)
     html_code = f"""
-    <div style="font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto; background:#eef3ff; padding:12px; border-radius:8px;">
-      <pre id="{uid}" style="white-space:pre-wrap; word-wrap:break-word; margin:0; font-size:13px;">{safe}</pre>
-      <div style="margin-top:8px; display:flex; gap:8px;">
-        <button id="{uid}_btn" style="background:#1a73e8; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;">📋 Copy</button>
+    <div class="copy-box">
+      <pre id="{uid}">{safe}</pre>
+
+      <div class="copy-btn-container">
+        <button id="{uid}_btn" style="background:#1a73e8; color:white; border:none; border-radius:6px; cursor:pointer;">📋 Copy</button>
         <span id="{uid}_msg" style="align-self:center; color:#0b3a80; font-size:13px;"></span>
       </div>
     </div>
@@ -90,36 +141,38 @@ def render_copy_block(content: str, uid: str, height: int = 140):
     <script>
     const btn = document.getElementById("{uid}_btn");
     const msg = document.getElementById("{uid}_msg");
+
     btn.addEventListener("click", async function() {{
         try {{
             const text = document.getElementById("{uid}").innerText;
-            // Try navigator clipboard first
             if (navigator.clipboard && navigator.clipboard.writeText) {{
                 await navigator.clipboard.writeText(text);
             }} else {{
-                // Fallback: create textarea
                 const ta = document.createElement('textarea');
                 ta.value = text;
                 document.body.appendChild(ta);
                 ta.select();
                 document.execCommand('copy');
-                document.body.removeChild(ta);
+                ta.remove();
             }}
             msg.innerText = "Disalin!";
-            setTimeout(()=> msg.innerText = "", 1800);
+            setTimeout(()=> msg.innerText = "", 1500);
         }} catch (err) {{
-            console.error(err);
             msg.innerText = "Gagal menyalin";
-            setTimeout(()=> msg.innerText = "", 2200);
+            setTimeout(()=> msg.innerText = "", 2000);
         }}
     }});
     </script>
     """
-    # components.html allows the JS to run within an iframe; height must accommodate content
-    components.html(html_code, height=height, scrolling=True)
+
+    components.html(html_code, height=height, scrolling=False)
 
 
-# --- ENKRIPSI ---
+
+
+# ------------------------------------------------------------------------
+# ENKRIPSI
+# ------------------------------------------------------------------------
 with st.container():
     st.markdown("<div class='custom-card'>", unsafe_allow_html=True)
     st.subheader("🔒 Enkripsi Pesan")
@@ -135,8 +188,7 @@ with st.container():
                 encrypted_text = cipher.encrypt(text_encrypt.encode()).decode()
 
                 st.success("Pesan berhasil dienkripsi:")
-                # render copy block with unique id
-                render_copy_block(encrypted_text, uid="encrypted_result", height=160)
+                render_copy_block(encrypted_text, uid="encrypted_result", height=180)
 
             except Exception as e:
                 st.error(f"Error: {e}")
@@ -146,7 +198,10 @@ with st.container():
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-# --- DESKRIPSI ---
+
+# ------------------------------------------------------------------------
+# DESKRIPSI
+# ------------------------------------------------------------------------
 with st.container():
     st.markdown("<div class='custom-card'>", unsafe_allow_html=True)
     st.subheader("🔓 Deskripsi Pesan")
@@ -162,7 +217,7 @@ with st.container():
                 decrypted_text = cipher.decrypt(text_decrypt.encode()).decode()
 
                 st.success("Pesan berhasil didekripsi:")
-                render_copy_block(decrypted_text, uid="decrypted_result", height=160)
+                render_copy_block(decrypted_text, uid="decrypted_result", height=180)
 
             except Exception:
                 st.error("Password salah atau format enkripsi tidak valid.")
