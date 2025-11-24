@@ -72,7 +72,7 @@ def decrypt_message(encrypted_data_b64: str, password: str) -> str:
         return "Password salah atau data pesan tidak valid."
 
 def main():
-    st.title("Aplikasi Enkripsi Pesan dengan Password Berjangka Waktu")
+    st.title("joe wevil enkripsi chat")
 
     menu = ["Enkripsi Pesan", "Dekripsi Pesan"]
     choice = st.sidebar.selectbox("Pilih Fitur", menu)
@@ -106,3 +106,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
