@@ -174,12 +174,14 @@ def render_copy_block(content: str, uid: str, height: int = 160):
 # ENKRIPSI
 # ------------------------------------------------------------------------
 with st.container():
-    st.markdown("<div class='custom-card'>", unsafe_allow_html=True)
-   st.markdown("""
+   st.markdown("<div class='custom-card'>", unsafe_allow_html=True)
+
+st.markdown("""
 <div style="font-size:20px; font-weight:700; margin-bottom:10px;">
 🔒 Enkripsi Pesan
 </div>
 """, unsafe_allow_html=True)
+
 
 
     text_encrypt = st.text_area("Masukkan Pesan untuk Enkripsi:", placeholder="Tulis pesan...", key="encrypt_area")
@@ -208,12 +210,14 @@ with st.container():
 # DESKRIPSI
 # ------------------------------------------------------------------------
 with st.container():
-    st.markdown("<div class='custom-card'>", unsafe_allow_html=True)
-   st.markdown("""
+ st.markdown("<div class='custom-card'>", unsafe_allow_html=True)
+
+st.markdown("""
 <div style="font-size:20px; font-weight:700; margin-bottom:10px;">
 🔓 Deskripsi Pesan
 </div>
 """, unsafe_allow_html=True)
+
 
 
     text_decrypt = st.text_area("Masukkan Pesan Enkripsi:", placeholder="Tempel hasil enkripsi...", key="decrypt_area")
@@ -235,4 +239,5 @@ with st.container():
             st.warning("Isi pesan enkripsi dan password terlebih dahulu.")
 
     st.markdown("</div>", unsafe_allow_html=True)
+
 
