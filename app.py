@@ -4,6 +4,8 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
 from cryptography.fernet import Fernet
 import base64
+from html import escape as html_escape
+import streamlit.components.v1 as components
 
 # --- PAGE CONFIG ---
 st.set_page_config(
@@ -48,50 +50,12 @@ h1 {
 .stButton button:hover {
     background: #135cbc;
 }
-.copy-btn {
-    background: #1a73e8;
-    color: white;
-    padding: 6px 14px;
-    border-radius: 6px;
-    cursor: pointer;
-    display: inline-block;
-    margin-top: 5px;
-}
-.copy-btn:hover {
-    background: #135cbc;
-}
 </style>
-
-<script>
-// Auto expand textarea
-function autoExpand() {
-    const textareas = document.querySelectorAll("textarea");
-    textareas.forEach(t => {
-        t.addEventListener('input', function() {
-            this.style.height = "auto";
-            this.style.height = (this.scrollHeight) + "px";
-        });
-        t.style.height = "auto";
-        t.style.height = (t.scrollHeight) + "px";
-    });
-}
-setTimeout(autoExpand, 500);
-
-// Copy function
-function copyToClipboard(textId) {
-    const content = document.getElementById(textId).innerText;
-    navigator.clipboard.writeText(content).then(function() {
-        alert("Berhasil disalin ke clipboard!");
-    });
-}
-</script>
 """, unsafe_allow_html=True)
-
 
 # --- TITLE ---
 st.markdown("<h1 align='center'>🔐 Aplikasi Enkripsi & Deskripsi</h1>", unsafe_allow_html=True)
 st.write("Masukkan pesan dan password untuk melakukan enkripsi atau deskripsi.")
-
 
 # --- KEY GENERATOR ---
 def generate_key(password: str) -> bytes:
@@ -108,13 +72,60 @@ def generate_key(password: str) -> bytes:
     return base64.urlsafe_b64encode(kdf.derive(password_bytes))
 
 
+def render_copy_block(content: str, uid: str, height: int = 140):
+    """
+    Render a styled pre block with a Copy button using st.components.v1.html.
+    Uses html escaping for the content.
+    """
+    safe = html_escape(content)
+    html_code = f"""
+    <div style="font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto; background:#eef3ff; padding:12px; border-radius:8px;">
+      <pre id="{uid}" style="white-space:pre-wrap; word-wrap:break-word; margin:0; font-size:13px;">{safe}</pre>
+      <div style="margin-top:8px; display:flex; gap:8px;">
+        <button id="{uid}_btn" style="background:#1a73e8; color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer;">📋 Copy</button>
+        <span id="{uid}_msg" style="align-self:center; color:#0b3a80; font-size:13px;"></span>
+      </div>
+    </div>
+
+    <script>
+    const btn = document.getElementById("{uid}_btn");
+    const msg = document.getElementById("{uid}_msg");
+    btn.addEventListener("click", async function() {{
+        try {{
+            const text = document.getElementById("{uid}").innerText;
+            // Try navigator clipboard first
+            if (navigator.clipboard && navigator.clipboard.writeText) {{
+                await navigator.clipboard.writeText(text);
+            }} else {{
+                // Fallback: create textarea
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+            }}
+            msg.innerText = "Disalin!";
+            setTimeout(()=> msg.innerText = "", 1800);
+        }} catch (err) {{
+            console.error(err);
+            msg.innerText = "Gagal menyalin";
+            setTimeout(()=> msg.innerText = "", 2200);
+        }}
+    }});
+    </script>
+    """
+    # components.html allows the JS to run within an iframe; height must accommodate content
+    components.html(html_code, height=height, scrolling=True)
+
+
 # --- ENKRIPSI ---
 with st.container():
     st.markdown("<div class='custom-card'>", unsafe_allow_html=True)
     st.subheader("🔒 Enkripsi Pesan")
 
     text_encrypt = st.text_area("Masukkan Pesan untuk Enkripsi:", placeholder="Tulis pesan...", key="encrypt_area")
-    password_encrypt = st.text_input("Masukkan Password:", type="password")
+    password_encrypt = st.text_input("Masukkan Password:", type="password", key="pw_encrypt")
 
     if st.button("Enkripsi Pesan"):
         if text_encrypt and password_encrypt:
@@ -124,16 +135,8 @@ with st.container():
                 encrypted_text = cipher.encrypt(text_encrypt.encode()).decode()
 
                 st.success("Pesan berhasil dienkripsi:")
-
-                # BLOCK HASIL + COPY
-                unique_id = "encrypted_result"
-                st.markdown(
-                    f"""
-                    <pre id="{unique_id}" style="padding:10px; background:#eef3ff; border-radius:8px;">{encrypted_text}</pre>
-                    <div class="copy-btn" onclick="copyToClipboard('{unique_id}')">📋 Copy</div>
-                    """,
-                    unsafe_allow_html=True
-                )
+                # render copy block with unique id
+                render_copy_block(encrypted_text, uid="encrypted_result", height=160)
 
             except Exception as e:
                 st.error(f"Error: {e}")
@@ -159,16 +162,7 @@ with st.container():
                 decrypted_text = cipher.decrypt(text_decrypt.encode()).decode()
 
                 st.success("Pesan berhasil didekripsi:")
-
-                # BLOCK HASIL + COPY
-                unique_id = "decrypted_result"
-                st.markdown(
-                    f"""
-                    <pre id="{unique_id}" style="padding:10px; background:#eef3ff; border-radius:8px;">{decrypted_text}</pre>
-                    <div class="copy-btn" onclick="copyToClipboard('{unique_id}')">📋 Copy</div>
-                    """,
-                    unsafe_allow_html=True
-                )
+                render_copy_block(decrypted_text, uid="decrypted_result", height=160)
 
             except Exception:
                 st.error("Password salah atau format enkripsi tidak valid.")
