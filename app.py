@@ -2,16 +2,16 @@ import streamlit as st
 import base64
 import json
 import time
-from datetime import datetime, timezone
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.backends import default_backend
 import os
 
-# ==================== FUNGSI ====================
+# ==================== FUNGSI UTAMA ====================
 
 def derive_key(password: str, salt: bytes) -> bytes:
+    """Generate key dari password + salt."""
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
         length=32,
@@ -21,51 +21,59 @@ def derive_key(password: str, salt: bytes) -> bytes:
     )
     return kdf.derive(password.encode())
 
+
 def encrypt_message(message: str, password: str) -> str:
+    """Enkripsi pesan + timestamp."""
     salt = os.urandom(16)
     key = derive_key(password, salt)
     aesgcm = AESGCM(key)
     nonce = os.urandom(12)
 
     payload = json.dumps({
-        'timestamp': int(time.time()),
-        'message': message
+        "timestamp": int(time.time()),
+        "message": message
     }).encode()
 
     ct = aesgcm.encrypt(nonce, payload, None)
-    encrypted_data = base64.b64encode(salt + nonce + ct).decode()
-    return encrypted_data
+    encrypted = base64.b64encode(salt + nonce + ct).decode()
+    return encrypted
 
-def decrypt_message(encrypted_data_b64: str, password: str) -> str:
+
+def decrypt_message(encrypted_b64: str, password: str) -> str:
+    """Dekripsi pesan + cek masa berlaku 10 menit."""
     try:
-        data = base64.b64decode(encrypted_data_b64)
+        data = base64.b64decode(encrypted_b64)
+
         salt = data[:16]
         nonce = data[16:28]
         ct = data[28:]
 
         key = derive_key(password, salt)
         aesgcm = AESGCM(key)
+        decrypted = aesgcm.decrypt(nonce, ct, None)
 
-        decrypted_payload = aesgcm.decrypt(nonce, ct, None)
-        payload = json.loads(decrypted_payload)
+        payload = json.loads(decrypted)
 
-        timestamp = payload.get('timestamp')
-        message = payload.get('message')
+        timestamp = payload["timestamp"]
+        message = payload["message"]
 
+        # cek 10 menit
         if int(time.time()) - timestamp > 600:
             return "Pesan sudah kedaluwarsa dan tidak dapat dibaca."
+
         return message
 
     except:
         return "Password salah atau data pesan tidak valid."
+
 
 # ==================== UI + DESAIN ====================
 
 def main():
     st.set_page_config(page_title="Enkripsi & Dekripsi", layout="wide")
 
-    # ---------- Custom CSS ----------
-    st.markdown("""
+    # CSS Custom
+    css = """
     <style>
     body {
         font-family: 'Segoe UI', sans-serif;
@@ -78,4 +86,93 @@ def main():
         color: white;
         text-align: center;
         margin-bottom: 30px;
-        box-shadow: 0px
+        box-shadow: 0px 4px 20px rgba(0,0,0,0.2);
+    }
+
+    .card {
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        border: 1px solid #e6e6e6;
+        box-shadow: 0px 4px 15px rgba(0,0,0,0.05);
+        margin-bottom: 25px;
+    }
+
+    .stButton>button {
+        background: #0d6efd !important;
+        color: white !important;
+        padding: 10px 20px !important;
+        border-radius: 10px !important;
+        border: none !important;
+        font-size: 16px !important;
+        transition: 0.3s !important;
+    }
+
+    .stButton>button:hover {
+        background: #0b5ed7 !important;
+        transform: scale(1.03);
+    }
+
+    textarea, input {
+        border-radius: 8px !important;
+    }
+
+    @media (max-width: 768px) {
+        .card { padding: 18px !important; }
+    }
+    </style>
+    """
+    st.markdown(css, unsafe_allow_html=True)
+
+    # Header
+    st.markdown(
+        "<div class='title-box'><h2>🔐 Joe Wevil - Enkripsi & Dekripsi Pesan</h2></div>",
+        unsafe_allow_html=True
+    )
+
+    # Dua kolom berdampingan
+    col1, col2 = st.columns(2)
+
+    # ======================== ENKRIPSI ========================
+    with col1:
+        st.markdown("<div class='card'><h3>🔒 Enkripsi Pesan</h3>", unsafe_allow_html=True)
+
+        message = st.text_area("Masukkan pesan yang ingin dienkripsi:")
+        password = st.text_input("Password (berlaku 10 menit):", type="password")
+
+        if st.button("Enkripsi"):
+            if not message or not password:
+                st.warning("Pesan dan password harus diisi.")
+            else:
+                encrypted = encrypt_message(message, password)
+                st.success("Pesan berhasil dienkripsi!")
+                st.text_area("Hasil Enkripsi (bagikan ke penerima):", encrypted, height=150)
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # ======================== DEKRIPSI ========================
+    with col2:
+        st.markdown("<div class='card'><h3>🔓 Dekripsi Pesan</h3>", unsafe_allow_html=True)
+
+        encrypted_data = st.text_area("Masukkan hash/enkripsi pesan:")
+        password_dec = st.text_input("Password untuk membuka pesan:", type="password")
+
+        if st.button("Dekripsi"):
+            if not encrypted_data or not password_dec:
+                st.warning("Hash dan password harus diisi.")
+            else:
+                decrypted = decrypt_message(encrypted_data, password_dec)
+                if decrypted in [
+                    "Password salah atau data pesan tidak valid.",
+                    "Pesan sudah kedaluwarsa dan tidak dapat dibaca."
+                ]:
+                    st.error(decrypted)
+                else:
+                    st.success("Pesan berhasil didekripsi:")
+                    st.write(decrypted)
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+
+if __name__ == "__main__":
+    main()
