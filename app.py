@@ -8,10 +8,10 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.backends import default_backend
 import os
 
-# ==================== FUNGSI UTAMA ====================
+
+# ==================== FUNGSI ====================
 
 def derive_key(password: str, salt: bytes) -> bytes:
-    """Generate key dari password + salt."""
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
         length=32,
@@ -23,7 +23,6 @@ def derive_key(password: str, salt: bytes) -> bytes:
 
 
 def encrypt_message(message: str, password: str) -> str:
-    """Enkripsi pesan + timestamp."""
     salt = os.urandom(16)
     key = derive_key(password, salt)
     aesgcm = AESGCM(key)
@@ -40,10 +39,8 @@ def encrypt_message(message: str, password: str) -> str:
 
 
 def decrypt_message(encrypted_b64: str, password: str) -> str:
-    """Dekripsi pesan + cek masa berlaku 10 menit."""
     try:
         data = base64.b64decode(encrypted_b64)
-
         salt = data[:16]
         nonce = data[16:28]
         ct = data[28:]
@@ -51,18 +48,15 @@ def decrypt_message(encrypted_b64: str, password: str) -> str:
         key = derive_key(password, salt)
         aesgcm = AESGCM(key)
         decrypted = aesgcm.decrypt(nonce, ct, None)
-
         payload = json.loads(decrypted)
 
         timestamp = payload["timestamp"]
         message = payload["message"]
 
-        # cek 10 menit
         if int(time.time()) - timestamp > 600:
             return "Pesan sudah kedaluwarsa dan tidak dapat dibaca."
 
         return message
-
     except:
         return "Password salah atau data pesan tidak valid."
 
@@ -72,12 +66,10 @@ def decrypt_message(encrypted_b64: str, password: str) -> str:
 def main():
     st.set_page_config(page_title="Enkripsi & Dekripsi", layout="wide")
 
-    # CSS Custom
-    css = """
+    # CSS & auto-expand JS
+    st.markdown("""
     <style>
-    body {
-        font-family: 'Segoe UI', sans-serif;
-    }
+    body { font-family: 'Segoe UI', sans-serif; }
 
     .title-box {
         background: linear-gradient(90deg, #0d6efd, #6610f2);
@@ -98,6 +90,13 @@ def main():
         margin-bottom: 25px;
     }
 
+    textarea {
+        border-radius: 8px !important;
+        overflow-y: hidden !important;
+        min-height: 120px !important;
+        resize: none !important;
+    }
+
     .stButton>button {
         background: #0d6efd !important;
         color: white !important;
@@ -107,22 +106,29 @@ def main():
         font-size: 16px !important;
         transition: 0.3s !important;
     }
-
     .stButton>button:hover {
         background: #0b5ed7 !important;
         transform: scale(1.03);
     }
-
-    textarea, input {
-        border-radius: 8px !important;
-    }
-
-    @media (max-width: 768px) {
-        .card { padding: 18px !important; }
-    }
     </style>
-    """
-    st.markdown(css, unsafe_allow_html=True)
+
+    <script>
+    // Auto expand all textarea in Streamlit
+    const resizeTextAreas = () => {
+        document.querySelectorAll("textarea").forEach(el => {
+            el.style.height = "auto";
+            el.style.height = (el.scrollHeight) + "px";
+            el.addEventListener("input", () => {
+                el.style.height = "auto";
+                el.style.height = (el.scrollHeight) + "px";
+            });
+        });
+    };
+
+    window.addEventListener("load", resizeTextAreas);
+    setTimeout(resizeTextAreas, 500);  // for widgets that load late
+    </script>
+    """, unsafe_allow_html=True)
 
     # Header
     st.markdown(
@@ -130,7 +136,6 @@ def main():
         unsafe_allow_html=True
     )
 
-    # Dua kolom berdampingan
     col1, col2 = st.columns(2)
 
     # ======================== ENKRIPSI ========================
@@ -146,7 +151,7 @@ def main():
             else:
                 encrypted = encrypt_message(message, password)
                 st.success("Pesan berhasil dienkripsi!")
-                st.text_area("Hasil Enkripsi (bagikan ke penerima):", encrypted, height=150)
+                st.text_area("Hasil Enkripsi (bagikan ke penerima):", encrypted)
 
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -169,7 +174,7 @@ def main():
                     st.error(decrypted)
                 else:
                     st.success("Pesan berhasil didekripsi:")
-                    st.write(decrypted)
+                    st.text_area("", decrypted)
 
         st.markdown("</div>", unsafe_allow_html=True)
 
