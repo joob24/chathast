@@ -14,14 +14,11 @@ st.set_page_config(
 # --- CUSTOM CSS INCLUDING AUTO-EXPAND TEXTAREA ---
 st.markdown("""
 <style>
-/* Modern container style */
 .stApp {
     background: #f6f9fc;
     padding: 20px;
     font-family: "Segoe UI", sans-serif;
 }
-
-/* Card styling */
 .custom-card {
     background: white;
     padding: 25px 30px;
@@ -29,26 +26,18 @@ st.markdown("""
     box-shadow: 0 4px 18px rgba(0,0,0,0.08);
     margin-bottom: 25px;
 }
-
-/* Auto-expand textarea */
 textarea {
     overflow: hidden !important;
     min-height: 120px !important;
     resize: none !important;
 }
-
-/* Increase height dynamically */
 textarea:focus, textarea:not(:placeholder-shown) {
     height: auto !important;
 }
-
-/* Title styling */
 h1 {
     font-weight: 700;
     color: #1a3d7c;
 }
-
-/* Button styling */
 .stButton button {
     background: #1a73e8;
     color: white;
@@ -59,10 +48,22 @@ h1 {
 .stButton button:hover {
     background: #135cbc;
 }
+.copy-btn {
+    background: #1a73e8;
+    color: white;
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-block;
+    margin-top: 5px;
+}
+.copy-btn:hover {
+    background: #135cbc;
+}
 </style>
 
 <script>
-// Auto expand all textareas
+// Auto expand textarea
 function autoExpand() {
     const textareas = document.querySelectorAll("textarea");
     textareas.forEach(t => {
@@ -70,21 +71,29 @@ function autoExpand() {
             this.style.height = "auto";
             this.style.height = (this.scrollHeight) + "px";
         });
-        // auto initial expand
         t.style.height = "auto";
         t.style.height = (t.scrollHeight) + "px";
     });
 }
-
 setTimeout(autoExpand, 500);
+
+// Copy function
+function copyToClipboard(textId) {
+    const content = document.getElementById(textId).innerText;
+    navigator.clipboard.writeText(content).then(function() {
+        alert("Berhasil disalin ke clipboard!");
+    });
+}
 </script>
 """, unsafe_allow_html=True)
+
 
 # --- TITLE ---
 st.markdown("<h1 align='center'>🔐 Aplikasi Enkripsi & Deskripsi</h1>", unsafe_allow_html=True)
 st.write("Masukkan pesan dan password untuk melakukan enkripsi atau deskripsi.")
 
-# --- KEY DERIVATION FUNCTION ---
+
+# --- KEY GENERATOR ---
 def generate_key(password: str) -> bytes:
     password_bytes = password.encode()
     salt = b"static_salt_value_123"
@@ -98,7 +107,8 @@ def generate_key(password: str) -> bytes:
     )
     return base64.urlsafe_b64encode(kdf.derive(password_bytes))
 
-# --- CARD (ENKRIPSI) ---
+
+# --- ENKRIPSI ---
 with st.container():
     st.markdown("<div class='custom-card'>", unsafe_allow_html=True)
     st.subheader("🔒 Enkripsi Pesan")
@@ -112,8 +122,19 @@ with st.container():
                 key = generate_key(password_encrypt)
                 cipher = Fernet(key)
                 encrypted_text = cipher.encrypt(text_encrypt.encode()).decode()
+
                 st.success("Pesan berhasil dienkripsi:")
-                st.code(encrypted_text)
+
+                # BLOCK HASIL + COPY
+                unique_id = "encrypted_result"
+                st.markdown(
+                    f"""
+                    <pre id="{unique_id}" style="padding:10px; background:#eef3ff; border-radius:8px;">{encrypted_text}</pre>
+                    <div class="copy-btn" onclick="copyToClipboard('{unique_id}')">📋 Copy</div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
             except Exception as e:
                 st.error(f"Error: {e}")
         else:
@@ -121,7 +142,8 @@ with st.container():
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-# --- CARD (DESKRIPSI) ---
+
+# --- DESKRIPSI ---
 with st.container():
     st.markdown("<div class='custom-card'>", unsafe_allow_html=True)
     st.subheader("🔓 Deskripsi Pesan")
@@ -135,9 +157,20 @@ with st.container():
                 key = generate_key(password_decrypt)
                 cipher = Fernet(key)
                 decrypted_text = cipher.decrypt(text_decrypt.encode()).decode()
+
                 st.success("Pesan berhasil didekripsi:")
-                st.code(decrypted_text)
-            except Exception as e:
+
+                # BLOCK HASIL + COPY
+                unique_id = "decrypted_result"
+                st.markdown(
+                    f"""
+                    <pre id="{unique_id}" style="padding:10px; background:#eef3ff; border-radius:8px;">{decrypted_text}</pre>
+                    <div class="copy-btn" onclick="copyToClipboard('{unique_id}')">📋 Copy</div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+            except Exception:
                 st.error("Password salah atau format enkripsi tidak valid.")
         else:
             st.warning("Isi pesan enkripsi dan password terlebih dahulu.")
