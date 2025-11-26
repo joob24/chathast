@@ -254,8 +254,9 @@ with st.container():
 
     st.markdown("""
     <div style="font-size:20px; font-weight:700; margin-bottom:10px;">
-    🔓 Deskripsi Pesan
+    joe wevil - development python streamlit
     </div>
     """, unsafe_allow_html=True)
+
 
 
