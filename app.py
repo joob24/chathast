@@ -249,8 +249,13 @@ with st.container():
 
  
 
-# joe wevil - development python streamlit
+with st.container():
+    st.markdown("<div class='custom-card'>", unsafe_allow_html=True)
 
-
+    st.markdown("""
+    <div style="font-size:20px; font-weight:700; margin-bottom:10px;">
+    🔓 Deskripsi Pesan
+    </div>
+    """, unsafe_allow_html=True)
 
 
