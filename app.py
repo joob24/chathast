@@ -247,10 +247,13 @@ with st.container():
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-
-     joe wevil - development python streamlit\n
-
-
+ st.markdown("---")
+    st.markdown(
+        """
+        joe wevil - development python streamlit\n
+   
+        """
+    )
 
 
 
